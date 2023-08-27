@@ -146,6 +146,8 @@ def removePreprocess(output, info):
     
     if h != 1024 or w != 1024:
         output = output * h
+    else:
+        output = output * 1024
     
     padh, padw, auxh, auxw = padding
     
