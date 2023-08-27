@@ -6,6 +6,7 @@ from models.HybridGNet2IGSC import Hybrid
 from utils.utils import scipy_to_torch_sparse, genMatrixesLungsHeart
 import scipy.sparse as sp
 import torch
+import pandas as pd
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 hybrid = None
@@ -43,11 +44,11 @@ def drawOnTop(img, landmarks):
     # Draw the landmarks as dots
     
     for l in RL:
-        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (1, 1, 0), -1)
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 5, (1, 0, 1), -1)
     for l in LL:
-        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (1, 1, 0), -1)
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 5, (1, 0, 1), -1)
     for l in H:
-        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (0, 1, 1), -1)
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 5, (1, 1, 0), -1)
     
     return image
     
@@ -132,10 +133,18 @@ def segment(input_img):
     
     with torch.no_grad():
         output = hybrid(data)[0].cpu().numpy().reshape(-1, 2) * 1024
-       
-    return drawOnTop(img, output)
+    
+    outseg = drawOnTop(img, output)
+    
+    output = output.astype('int')
+    
+    RL = pd.DataFrame(output[0:44], columns=["x","y"])
+    LL = pd.DataFrame(output[44:94], columns=["x","y"])
+    H = pd.DataFrame(output[94:], columns=["x","y"])
+    
+    return outseg #, RL, LL, H
 
 
 if __name__ == "__main__":    
-    demo = gr.Interface(segment, gr.Image(type="filepath"), "image")
+    demo = gr.Interface(segment, gr.Image(type="filepath", height=750), outputs=gr.Image(type="filepath", height=750), title="Chest X-ray HybridGNet Segmentation")
     demo.launch()
