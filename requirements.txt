@@ -1,4 +1,4 @@
-pytorch==2.0.1
+torch==2.0.1
 numpy==1.25.0
 opencv-python==4.8.0.74
 scipy==1.10.1
