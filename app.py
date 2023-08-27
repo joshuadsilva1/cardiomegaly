@@ -146,5 +146,5 @@ def segment(input_img):
 
 
 if __name__ == "__main__":    
-    demo = gr.Interface(segment, gr.Image(type="filepath", height=750), outputs=gr.Image(type="filepath", height=750), title="Chest X-ray HybridGNet Segmentation")
+    demo = gr.Interface(segment, inputs=gr.Image(type="filepath", height=750),  examples=['utils/example.jpg'], outputs=gr.Image(type="filepath", height=750), title="Chest X-ray HybridGNet Segmentation")
     demo.launch()
