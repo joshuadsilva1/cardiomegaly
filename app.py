@@ -67,7 +67,7 @@ def loadModel(device):
     config['skip_features'] = f
 
     hybrid = Hybrid(config.copy(), D_t, U_t, A_t).to(device)
-    hybrid.load_state_dict(torch.load("weights/bestMSE.pt"))
+    hybrid.load_state_dict(torch.load("weights/weights.pt"))
     hybrid.eval()
     
     return hybrid
