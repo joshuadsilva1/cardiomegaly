@@ -53,6 +53,8 @@ def drawOnTop(img, landmarks):
     
 
 def loadModel(device):
+    global device
+    
     A, AD, D, U = genMatrixesLungsHeart()
     N1 = A.shape[0]
     N2 = AD.shape[0]
