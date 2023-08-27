@@ -3,3 +3,4 @@ numpy==1.25.0
 opencv-python==4.8.0.74
 scipy==1.10.1
 torch_geometric==2.3.0
+torchvision
