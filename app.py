@@ -7,6 +7,8 @@ from utils.utils import scipy_to_torch_sparse, genMatrixesLungsHeart
 import scipy.sparse as sp
 import torch
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+hybrid = None
 
 def getDenseMask(landmarks):
     RL = landmarks[0:44]
@@ -35,7 +37,18 @@ def drawOnTop(img, landmarks):
     image[:,:,2] = img - 0.1 * (output == 1).astype('float') - 0.2 * (output == 2).astype('float') 
 
     image = np.clip(image, 0, 1)
-
+    
+    RL, LL, H = landmarks[0:44], landmarks[44:94], landmarks[94:]
+    
+    # Draw the landmarks as dots
+    
+    for l in RL:
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (1, 1, 0), -1)
+    for l in LL:
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (1, 1, 0), -1)
+    for l in H:
+        image = cv2.circle(image, (int(l[0]), int(l[1])), 1, (0, 1, 1), -1)
+    
     return image
     
 
@@ -106,13 +119,15 @@ def preprocess(input_img):
 
     
 def segment(input_img):
+    global hybrid
+    
+    if hybrid is None:
+        hybrid = loadModel()
+    
     input_img = cv2.imread(input_img, 0) / 255.0
     
     img, (h, w, padding) = preprocess(input_img)    
-    
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    hybrid = loadModel(device)
-    
+        
     data = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).to(device).float()
     
     with torch.no_grad():
@@ -121,6 +136,6 @@ def segment(input_img):
     return drawOnTop(img, output)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     demo = gr.Interface(segment, gr.Image(type="filepath"), "image")
     demo.launch()
