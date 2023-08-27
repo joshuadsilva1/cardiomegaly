@@ -52,9 +52,7 @@ def drawOnTop(img, landmarks):
     return image
     
 
-def loadModel(device):
-    global device
-    
+def loadModel(device):    
     A, AD, D, U = genMatrixesLungsHeart()
     N1 = A.shape[0]
     N2 = AD.shape[0]
@@ -121,10 +119,10 @@ def preprocess(input_img):
 
     
 def segment(input_img):
-    global hybrid
+    global hybrid, device
     
     if hybrid is None:
-        hybrid = loadModel()
+        hybrid = loadModel(device)
     
     input_img = cv2.imread(input_img, 0) / 255.0
     
