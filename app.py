@@ -276,5 +276,4 @@ if __name__ == "__main__":
         
         image_button.click(segment, inputs=image_input, outputs=[image_output, results], queue=False)
         
-
-    demo.launch()
+    demo.launch(share=True)
