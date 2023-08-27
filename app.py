@@ -7,16 +7,18 @@ from utils.utils import scipy_to_torch_sparse, genMatrixesLungsHeart
 import scipy.sparse as sp
 import torch
 import pandas as pd
+from zipfile import ZipFile
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 hybrid = None
 
-def getDenseMask(landmarks):
+def getDenseMask(landmarks, h, w):
+    
     RL = landmarks[0:44]
     LL = landmarks[44:94]
     H = landmarks[94:]
     
-    img = np.zeros([1024,1024], dtype = 'uint8')
+    img = np.zeros([h, w], dtype = 'uint8')
     
     RL = RL.reshape(-1, 1, 2).astype('int')
     LL = LL.reshape(-1, 1, 2).astype('int')
@@ -28,11 +30,31 @@ def getDenseMask(landmarks):
     
     return img
 
-
-def drawOnTop(img, landmarks):
-    output = getDenseMask(landmarks)
+def getMasks(landmarks, h, w):
     
-    image = np.zeros([1024, 1024, 3])
+    RL = landmarks[0:44]
+    LL = landmarks[44:94]
+    H = landmarks[94:]
+    
+    RL = RL.reshape(-1, 1, 2).astype('int')
+    LL = LL.reshape(-1, 1, 2).astype('int')
+    H = H.reshape(-1, 1, 2).astype('int')
+    
+    RL_mask = np.zeros([h, w], dtype = 'uint8')
+    LL_mask = np.zeros([h, w], dtype = 'uint8')
+    H_mask = np.zeros([h, w], dtype = 'uint8')
+    
+    RL_mask = cv2.drawContours(RL_mask, [RL], -1, 255, -1)
+    LL_mask = cv2.drawContours(LL_mask, [LL], -1, 255, -1)
+    H_mask = cv2.drawContours(H_mask, [H], -1, 255, -1)
+
+    return RL_mask, LL_mask, H_mask
+
+def drawOnTop(img, landmarks, original_shape):
+    h, w = original_shape
+    output = getDenseMask(landmarks, h, w)
+    
+    image = np.zeros([h, w, 3])
     image[:,:,0] = img + 0.3 * (output == 1).astype('float') - 0.1 * (output == 2).astype('float')
     image[:,:,1] = img + 0.3 * (output == 2).astype('float') - 0.1 * (output == 1).astype('float') 
     image[:,:,2] = img - 0.1 * (output == 1).astype('float') - 0.2 * (output == 2).astype('float') 
@@ -118,7 +140,28 @@ def preprocess(input_img):
         
     return img, (h, w, padding)
 
+
+def removePreprocess(output, info):
+    h, w, padding = info
     
+    if h != 1024 or w != 1024:
+        output = output * h
+    
+    padh, padw, auxh, auxw = padding
+    
+    output[:, 0] = output[:, 0] - padw//2
+    output[:, 1] = output[:, 1] - padh//2
+    
+    return output   
+
+
+def zip_files(files):
+    with ZipFile("complete_results.zip", "w") as zipObj:
+        for idx, file in enumerate(files):
+            zipObj.write(file, arcname=file.split("/")[-1])
+    return "complete_results.zip"
+
+
 def segment(input_img):
     global hybrid, device
     
@@ -126,25 +169,112 @@ def segment(input_img):
         hybrid = loadModel(device)
     
     input_img = cv2.imread(input_img, 0) / 255.0
+    original_shape = input_img.shape[:2]
     
     img, (h, w, padding) = preprocess(input_img)    
         
     data = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).to(device).float()
     
     with torch.no_grad():
-        output = hybrid(data)[0].cpu().numpy().reshape(-1, 2) * 1024
-    
-    outseg = drawOnTop(img, output)
+        output = hybrid(data)[0].cpu().numpy().reshape(-1, 2)
+        
+    output = removePreprocess(output, (h, w, padding))
     
     output = output.astype('int')
     
-    RL = pd.DataFrame(output[0:44], columns=["x","y"])
-    LL = pd.DataFrame(output[44:94], columns=["x","y"])
-    H = pd.DataFrame(output[94:], columns=["x","y"])
+    outseg = drawOnTop(input_img, output, original_shape) 
     
-    return outseg #, RL, LL, H
-
+    seg_to_save = (outseg.copy() * 255).astype('uint8')
+    cv2.imwrite("tmp/overlap_segmentation.png" , cv2.cvtColor(seg_to_save, cv2.COLOR_RGB2BGR))
+    
+    RL = output[0:44]
+    LL = output[44:94]
+    H = output[94:]
+            
+    np.savetxt("tmp/RL_landmarks.txt", RL, delimiter=" ", fmt="%d")
+    np.savetxt("tmp/LL_landmarks.txt", LL, delimiter=" ", fmt="%d")
+    np.savetxt("tmp/H_landmarks.txt", H, delimiter=" ", fmt="%d")
+    
+    RL_mask, LL_mask, H_mask = getMasks(output, original_shape[0], original_shape[1])
+    
+    cv2.imwrite("tmp/RL_mask.png", RL_mask)
+    cv2.imwrite("tmp/LL_mask.png", LL_mask)
+    cv2.imwrite("tmp/H_mask.png", H_mask)
+    
+    zip = zip_files(["tmp/RL_landmarks.txt", "tmp/LL_landmarks.txt", "tmp/H_landmarks.txt", "tmp/RL_mask.png", "tmp/LL_mask.png", "tmp/H_mask.png", "tmp/overlap_segmentation.png"])    
+    
+    return outseg, ["tmp/RL_landmarks.txt", "tmp/LL_landmarks.txt", "tmp/H_landmarks.txt", "tmp/RL_mask.png", "tmp/LL_mask.png", "tmp/H_mask.png", "tmp/overlap_segmentation.png", zip]
 
 if __name__ == "__main__":    
-    demo = gr.Interface(segment, inputs=gr.Image(type="filepath", height=750),  examples=['utils/example.jpg'], outputs=gr.Image(type="filepath", height=750), title="Chest X-ray HybridGNet Segmentation")
+    
+    with gr.Blocks() as demo:
+
+        gr.Markdown("""
+                    # Chest X-ray HybridGNet Segmentation.
+                    
+                    Demo of the HybridGNet model introduced in "Improving anatomical plausibility in medical image segmentation via hybrid graph neural networks: applications to chest x-ray analysis."
+                    
+                    Instructions:
+                    1. Upload a chest X-ray image (PA or AP) in PNG or JPEG format.
+                    2. Click on "Segment Image".
+                    
+                    Note: Pre-processing is not needed, it will be done automatically and removed after the segmentation.
+                    
+                    Please check citations below.                    
+                    """)
+
+        with gr.Tab("Segment Image"):
+            with gr.Row():
+                with gr.Column():
+                    image_input = gr.Image(type="filepath", height=750)
+                    
+                    with gr.Row():
+                        clear_button = gr.Button("Clear")
+                        image_button = gr.Button("Segment Image")
+                        
+                    gr.Examples(inputs=image_input, examples=['utils/example.jpg'])
+                        
+                with gr.Column():
+                    image_output = gr.Image(type="filepath", height=750)
+                    results = gr.File()       
+        
+        gr.Markdown("""If you use this code, please cite:
+                    
+                    ```
+                    @article{gaggion2022TMI,
+                        doi = {10.1109/tmi.2022.3224660},
+                        url = {https://doi.org/10.1109%2Ftmi.2022.3224660},
+                        year = 2022,
+                        publisher = {Institute of Electrical and Electronics Engineers ({IEEE})},
+                        author = {Nicolas Gaggion and Lucas Mansilla and Candelaria Mosquera and Diego H. Milone and Enzo Ferrante},
+                        title = {Improving anatomical plausibility in medical image segmentation via hybrid graph neural networks: applications to chest x-ray analysis},
+                        journal = {{IEEE} Transactions on Medical Imaging}
+                    }
+                    ```
+                    
+                    This model was trained following the procedure explained on:
+                    
+                    ```
+                    @misc{gaggion2022ISBI,
+                    title={Multi-center anatomical segmentation with heterogeneous labels via landmark-based models}, 
+                    author={Nicolás Gaggion and Maria Vakalopoulou and Diego H. Milone and Enzo Ferrante},
+                    year={2022},
+                    eprint={2211.07395},
+                    archivePrefix={arXiv},
+                    primaryClass={eess.IV}
+                    }
+                    ```
+                    
+                    Author: Nicolás Gaggion
+                    Website: [ngaggion.github.io](https://ngaggion.github.io/)
+                    
+                    """)
+        
+
+        clear_button.click(lambda: None, None, image_input, queue=False)
+        clear_button.click(lambda: None, None, image_output, queue=False)
+        
+        image_button.click(segment, inputs=image_input, outputs=[image_output, results], queue=False)
+        
+
     demo.launch()
