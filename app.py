@@ -240,7 +240,10 @@ if __name__ == "__main__":
                     image_output = gr.Image(type="filepath", height=750)
                     results = gr.File()       
         
-        gr.Markdown("""If you use this code, please cite:
+        gr.Markdown("""
+                    Example image extracted from Wikipedia, released under CC0 Universial Public Domain: https://commons.wikimedia.org/wiki/File:Normal_posteroanterior_(PA)_chest_radiograph_(X-ray).jpg
+
+                    If you use this code, please cite:
                     
                     ```
                     @article{gaggion2022TMI,
