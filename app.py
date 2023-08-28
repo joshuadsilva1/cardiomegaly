@@ -234,14 +234,17 @@ if __name__ == "__main__":
                         clear_button = gr.Button("Clear")
                         image_button = gr.Button("Segment Image")
                         
-                    gr.Examples(inputs=image_input, examples=['utils/example.jpg'])
+                    gr.Examples(inputs=image_input, examples=['utils/example1.jpg','utils/example2.jpg','utils/example3.png'])
                         
                 with gr.Column():
                     image_output = gr.Image(type="filepath", height=750)
                     results = gr.File()       
         
         gr.Markdown("""
-                    Example image extracted from Wikipedia, released under CC0 Universial Public Domain: https://commons.wikimedia.org/wiki/File:Normal_posteroanterior_(PA)_chest_radiograph_(X-ray).jpg
+                    Example images extracted from Wikipedia, released under:
+                    1. CC0 Universial Public Domain. Source: https://commons.wikimedia.org/wiki/File:Normal_posteroanterior_(PA)_chest_radiograph_(X-ray).jpg
+                    2. Creative Commons Attribution-Share Alike 4.0 International. Source: https://commons.wikimedia.org/wiki/File:Chest_X-ray.jpg
+                    3. Creative Commons Attribution 3.0 Unported. Source https://commons.wikimedia.org/wiki/File:Implantable_cardioverter_defibrillator_chest_X-ray.jpg
 
                     If you use this code, please cite:
                     
