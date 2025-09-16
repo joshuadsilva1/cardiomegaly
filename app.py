@@ -258,13 +258,15 @@ if __name__ == "__main__":
                     This model was trained following the procedure explained on:
                     
                     ```
-                    @misc{gaggion2022ISBI,
-                    title={Multi-center anatomical segmentation with heterogeneous labels via landmark-based models}, 
-                    author={Nicolás Gaggion and Maria Vakalopoulou and Diego H. Milone and Enzo Ferrante},
-                    year={2022},
-                    eprint={2211.07395},
-                    archivePrefix={arXiv},
-                    primaryClass={eess.IV}
+                    @INPROCEEDINGS{gaggion2022ISBI,
+                        author={Gaggion, Nicolás and Vakalopoulou, Maria and Milone, Diego H. and Ferrante, Enzo},
+                        booktitle={2023 IEEE 20th International Symposium on Biomedical Imaging (ISBI)}, 
+                        title={Multi-Center Anatomical Segmentation with Heterogeneous Labels Via Landmark-Based Models}, 
+                        year={2023},
+                        volume={},
+                        number={},
+                        pages={1-5},
+                        doi={10.1109/ISBI53787.2023.10230691}
                     }
                     ```
 
