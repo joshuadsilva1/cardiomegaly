@@ -6,6 +6,13 @@ import torchvision.ops.roi_align as roi_align
 
 import numpy as np
 
+import tensorflow as tf, sys
+print("Python:", sys.version.splitlines()[0])
+print("TensorFlow:", tf.__version__)
+import keras
+print("Keras:", keras.__version__)
+
+    
 class EncoderConv(nn.Module):
     def __init__(self, latents = 64, hw = 32):
         super(EncoderConv, self).__init__()

@@ -1,0 +1,29 @@
+# --- System Files ---
+.DS_Store
+# Temporary macOS files
+.Trashes
+
+# --- Virtual Environments & Python Cache ---
+# Conda/Venv folders
+venv/
+.venv/
+server_1_env/
+server_2_env/
+# Python cache files
+__pycache__/
+*.pyc
+
+# --- Large/Local Outputs ---
+# Temporary Gradio/runtime data
+.gradio/
+tmp/
+segmentation_results/
+kaggle_results_dir/
+
+# --- Artifacts & Credentials ---
+# Machine learning models (too large for Git, use release pages/LFS)
+*.keras
+*.h5
+# Large, generated CSVs
+*_features.csv
+cdr_results*.csv
